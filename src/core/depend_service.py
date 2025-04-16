@@ -24,6 +24,10 @@ async def get_current_user(
 
 
 async def get_admin_user(user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to check if the current user is an admin.
+    Raises HTTPException if the user is not an admin.
+    """
     if user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
