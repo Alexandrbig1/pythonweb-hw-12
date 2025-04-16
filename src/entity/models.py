@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from sqlalchemy import (
     String,
     DateTime,
@@ -6,11 +7,18 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     Boolean,
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.conf import constants
+
+
+class UserRole(str, Enum):
+
+    USER = "USER"
+    ADMIN = "ADMIN"
 
 
 class Base(DeclarativeBase):
@@ -20,10 +28,18 @@ class Base(DeclarativeBase):
 class Contact_Book(Base):
     __tablename__ = "Contact_Book"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(constants.USER_NAME_MAX_LENGTH), nullable=False)
-    surname: Mapped[str] = mapped_column(String(constants.USER_SURNAME_MAX_LENGTH), nullable=False)
-    email: Mapped[str] = mapped_column(String(constants.USER_EMAIL_MAX_LENGTH), nullable=False)
-    phone: Mapped[str] = mapped_column(String(constants.PHONE_NUMBER_MAX_LENGTH), nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(constants.USER_NAME_MAX_LENGTH), nullable=False
+    )
+    surname: Mapped[str] = mapped_column(
+        String(constants.USER_SURNAME_MAX_LENGTH), nullable=False
+    )
+    email: Mapped[str] = mapped_column(
+        String(constants.USER_EMAIL_MAX_LENGTH), nullable=False
+    )
+    phone: Mapped[str] = mapped_column(
+        String(constants.PHONE_NUMBER_MAX_LENGTH), nullable=False
+    )
     date_of_birth: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -44,6 +60,33 @@ class User(Base):
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         "RefreshToken", back_populates="user"
     )
+    role: Mapped[UserRole] = mapped_column(
+        SqlEnum(UserRole), default=UserRole.USER, nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "hash_password": self.hash_password,
+            "avatar": self.avatar,
+            "confirmed": self.confirmed,
+            "role": self.role.value,
+
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "User":
+        user = cls()
+        user.id = data["id"]
+        user.username = data["username"]
+        user.email = data["email"]
+        user.hash_password = data["hash_password"]
+        user.avatar = data["avatar"]
+        user.confirmed = data["confirmed"]
+        user.role = UserRole(data["role"])
+        return user
 
 
 class RefreshToken(Base):
